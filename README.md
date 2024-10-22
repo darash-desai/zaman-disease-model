@@ -1,1 +1,1 @@
-# zaman-disease-model
+# Zaman Disease Model
