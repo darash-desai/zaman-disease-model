@@ -1,5 +1,5 @@
 clear;
-input_path = 'inputs-1x-beta.xlsx';
+input_path = '../../inputs/inputs-1x-beta.xlsx';
 
 inputs = readtable(input_path, 'Sheet', 'Pathogens');
 inputs.gamma = 1 ./ inputs.infectious_period;
@@ -17,11 +17,11 @@ num_pathogens = height(inputs);
 outputs = cell(replicates, 1);
 
 % Run the simulation with a certain number of replicates
-for replicate = 1:replicates    
-    % Start everyone out alive and allocate storage for each person for each 
-    % of the 4 compartments (S, E, I, R) per pathogen. Similar compartments 
-    % across pathogens are all grouped together (all S in one block of rows, 
-    % all E in the next block, etc.) Data types for each compartment are as 
+for replicate = 1:replicates
+    % Start everyone out alive and allocate storage for each person for each
+    % of the 4 compartments (S, E, I, R) per pathogen. Similar compartments
+    % across pathogens are all grouped together (all S in one block of rows,
+    % all E in the next block, etc.) Data types for each compartment are as
     % follows:
     %   - S: Bolean (0 or 1) indicated whether the individual is susceptible
     %   - E: Number of days the individual has been exposed
@@ -76,7 +76,7 @@ for replicate = 1:replicates
     
     for day=2:duration + 1
         N = sum(alive);
-    
+        
         % Deconstruct intial values for each compartment. The susceptible
         % population is masked by the alive flag to ignore any susceptibility
         % states for deceased persons.
@@ -84,7 +84,7 @@ for replicate = 1:replicates
         exposed = compartments(E, :);
         infected = compartments(I, :);
         recovered = compartments(R, :);
-    
+        
         % Determine the instantaneous lambda value based on the current number
         % of infections for each pathogen.
         infections = bitand(alive, compartments(I, :) > 0);
@@ -99,7 +99,7 @@ for replicate = 1:replicates
         susceptible(newly_exposed) = false;
         exposed = logical(exposed) .* (exposed + 1);
         exposed(newly_exposed) = 1;
-    
+        
         % Identify individuals that should be moved from E to I based on the
         % passage of the appropriate latency for each pathogen (in days).
         % Persons that move to infected, will have their E reset to 0 days.
@@ -107,9 +107,9 @@ for replicate = 1:replicates
         exposed(newly_infected) = 0;
         infected = bitand(alive, logical(infected)) .* (infected + 1);
         infected(newly_infected) = 1;
-    
+        
         % Draw random variates to determine identify any disease-related
-        % fatalities per pathogen. It's possible for a person to die 
+        % fatalities per pathogen. It's possible for a person to die
         % simultaneously from a co-infection. This is considereld a single
         % death and then used to update the alive flag for those individuals.
         % The susceptible flag associated with the pathogen responsible for
@@ -117,27 +117,27 @@ for replicate = 1:replicates
         variates = rand(num_pathogens, population);
         fatalities = logical(infected) & (variates < inputs.delta);
         deaths = sum(fatalities, 1) > 0;
-        alive(deaths) = false;    
+        alive(deaths) = false;
         susceptible(fatalities) = true;
-    
+        
         % Identify individuals that should be moved from I to R based on the
-        % passage of the appropriate infectious period for each pathogen (in 
-        % days). Persons that move to recovered, will have their I reset to 
+        % passage of the appropriate infectious period for each pathogen (in
+        % days). Persons that move to recovered, will have their I reset to
         % 0 days.
         newly_recovered = infected > inputs.infectious_period;
         infected(newly_recovered) = 0;
         recovered = logical(recovered) .* (recovered + 1);
         recovered(newly_recovered) = 1;
-    
+        
         % Identify individuals that should be moved from R to S based on the
-        % passage of the appropriate immunity period for each pathogen (in 
-        % days). Persons that move to susceptible, will have their R reset to 
+        % passage of the appropriate immunity period for each pathogen (in
+        % days). Persons that move to susceptible, will have their R reset to
         % 0 days.
         newly_susceptible = recovered > inputs.immunity_period;
         susceptible(newly_susceptible) = true;
         recovered(newly_susceptible) = 0;
-    
-        % Update the compartments variable with the changes from this 
+        
+        % Update the compartments variable with the changes from this
         % iteration, as well as the output data.
         compartments(S, :) = susceptible;
         compartments(E, :) = exposed;
@@ -149,12 +149,12 @@ for replicate = 1:replicates
         outputs{replicate}.infections(:, day) = sum(infected > 0, 2);
         outputs{replicate}.recoveries(:, day) = sum(recovered > 0, 2);
         outputs{replicate}.fatalities(:, day) = outputs{replicate}.fatalities(:, max(1, day - 1)) + sum(fatalities, 2);
-    
+        
         outputs{replicate}.healthy(day) = sum(sum(susceptible, 1) == num_pathogens);
         outputs{replicate}.infected(day) = sum(logical(sum(infected > 0, 1)));
         outputs{replicate}.deaths(day) = sum(~alive);
     end
-
+    
     disp(['Complete run ', num2str(replicate), '...']);
 end
 
@@ -187,64 +187,64 @@ legend('Healthy', 'Infected', 'Deaths');
 title("Total diarrhea");
 
 function initials = setInitialConditions(compartments, inputs, conditions)
-    %% Sets initial conditions for the compartment model
-    %
-    % Inputs:
-    %   - compartments: The initial matrix of compartment data or all
-    %       pathogens. 
+%% Sets initial conditions for the compartment model
+%
+% Inputs:
+%   - compartments: The initial matrix of compartment data or all
+%       pathogens.
 
-    num_pathogens = height(conditions);
-    population = size(compartments, 2);
+num_pathogens = height(conditions);
+population = size(compartments, 2);
 
-    total = sum([conditions.e, conditions.i, conditions.r], 'all');
-    if (total > 1)
-        ME = MException('setInitialConditions:inputError','Initial conditions must sum to less than unit.');
-        throw(ME);
+total = sum([conditions.e, conditions.i, conditions.r], 'all');
+if (total > 1)
+    ME = MException('setInitialConditions:inputError','Initial conditions must sum to less than unit.');
+    throw(ME);
+end
+
+S = (1 + 0 * (num_pathogens)):(1 * num_pathogens);
+E = (1 + 1 * (num_pathogens)):(2 * num_pathogens);
+I = (1 + 2 * (num_pathogens)):(3 * num_pathogens);
+R = (1 + 3 * (num_pathogens)):(4 * num_pathogens);
+
+person = 1;
+for pathogen = 1:num_pathogens
+    condition = conditions(pathogen, :);
+    input = inputs(pathogen, :);
+    initial_person = person;
+    
+    exposedPersons = round(condition.e * population);
+    infectedPersons = round(condition.i * population);
+    recoveredPersons = round(condition.r * population);
+    
+    if (exposedPersons > 0)
+        range = person:(person + exposedPersons - 1);
+        compartments(E(1) + pathogen - 1, range) = ...
+            round(rand(1, numel(range)) .* input.latency);
+        person = range(end) + 1;
     end
-
-    S = (1 + 0 * (num_pathogens)):(1 * num_pathogens);
-    E = (1 + 1 * (num_pathogens)):(2 * num_pathogens);
-    I = (1 + 2 * (num_pathogens)):(3 * num_pathogens);
-    R = (1 + 3 * (num_pathogens)):(4 * num_pathogens);
-
-    person = 1;
-    for pathogen = 1:num_pathogens
-        condition = conditions(pathogen, :);
-        input = inputs(pathogen, :);
-        initial_person = person;
-
-        exposedPersons = round(condition.e * population);
-        infectedPersons = round(condition.i * population);
-        recoveredPersons = round(condition.r * population);
-
-        if (exposedPersons > 0)
-            range = person:(person + exposedPersons - 1);
-            compartments(E(1) + pathogen - 1, range) = ...
-                round(rand(1, numel(range)) .* input.latency);
-            person = range(end) + 1;
-        end
-
-        if (infectedPersons > 0)
-            range = person:(person + infectedPersons - 1);
-            compartments(I(1) + pathogen - 1, range) = ...
-                round(rand(1, numel(range)) .* input.infectious_period);
-            person = range(end) + 1;
-        end
-
-        if (recoveredPersons > 0)
-            range = person:(person + recoveredPersons - 1);
-            compartments(R(1) + pathogen - 1, range) = ...
-                round(rand(1, numel(range)) .* input.immunity_period);
-            person = range(end) + 1;
-        end
-
-        compartments(S, initial_person:person) = 1;
-        compartments(S(1) + pathogen - 1, initial_person:person) = 0;
+    
+    if (infectedPersons > 0)
+        range = person:(person + infectedPersons - 1);
+        compartments(I(1) + pathogen - 1, range) = ...
+            round(rand(1, numel(range)) .* input.infectious_period);
+        person = range(end) + 1;
     end
-
-    if (person <= population)
-        compartments(S, person:population) = 1;
+    
+    if (recoveredPersons > 0)
+        range = person:(person + recoveredPersons - 1);
+        compartments(R(1) + pathogen - 1, range) = ...
+            round(rand(1, numel(range)) .* input.immunity_period);
+        person = range(end) + 1;
     end
+    
+    compartments(S, initial_person:person) = 1;
+    compartments(S(1) + pathogen - 1, initial_person:person) = 0;
+end
 
-    initials = compartments;
+if (person <= population)
+    compartments(S, person:population) = 1;
+end
+
+initials = compartments;
 end

@@ -1,5 +1,5 @@
 clear;
-input_path = 'inputs-r0.xlsx';
+input_path = '../../inputs/inputs-r0.xlsx';
 
 density_breakdown = [0.3, 0.5, 0.2];
 compartment_breakdown = [0.95 0 0.05 0 0];

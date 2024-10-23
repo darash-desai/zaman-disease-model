@@ -1,7 +1,7 @@
 %% Plots results from a recently run model.
 
 % The path to the input file used to run the model
-input_path = 'inputs-baseline.xlsx';
+input_path = '../inputs/inputs-baseline.xlsx';
 
 inputs = readtable(input_path, 'Sheet', 'Pathogens');
 parameters = readtable(input_path, 'Sheet', 'Parameters');
